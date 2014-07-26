@@ -2,7 +2,7 @@
 require 'pp'
 
 class Simulator
-  DEBUG = true
+  DEBUG = false
   FATAL = true
   MOD = 256
 
@@ -86,7 +86,7 @@ class Simulator
         error "Line #{@pc}: mov dest must not be a constant; #{dest}"
         return false
       elsif $1 =~ /^([a-h])$/
-        @reg[$1 - 'a'] = ret
+        @reg[$1.ord - 'a'.ord] = ret
       end
     end
     return true
@@ -110,7 +110,7 @@ class Simulator
 
       if line =~ /mov\s+([^\s]+)\s*,\s*([^\s]+)/i
         self.log "mov #{$1},#{$2}"
-        break if ! binop $1, $2, lambda {|a, b| a}
+        break if ! binop $1, $2, lambda {|a, b| b}
       elsif line =~ /inc (.+)/i
         self.log "inc"
         break if ! unaop $1, lambda {|a| (a + 1) % MOD}
@@ -140,20 +140,20 @@ class Simulator
         binop $1, $2, lambda {|a, b| (a ^ b) % MOD}
       elsif line =~ /jlt\s+([^\s]+)\s*,\s*([^\s]+)\s*,\s*([^\s]+)/i
         self.log "jlt"
-        x, y = self.extract_val($2), self.extract_val($3)
+        targ, x, y = $1.to_i, self.extract_val($2), self.extract_val($3)
         # $1 must be constant integer
-        @pc = $1.to_i $1 if x > y
+        @pc = targ if x > y
       elsif line =~ /jeq\s+([^\s]+)\s*,\s*([^\s]+)\s*,\s*([^\s]+)/i
         self.log "jeq"
-        x, y = self.extract_val($2), self.extract_val($3)
+        targ, x, y = $1.to_i, self.extract_val($2), self.extract_val($3)
         # $1 must be constant integer
-        @pc = $1.to_i $1 if x == y
+        @pc = targ if x == y
       elsif line =~ /jgt\s+([^\s]+)\s*,\s*([^\s]+)\s*,\s*([^\s]+)/i
         self.log "jgt"
-        x, y = self.extract_val($2), self.extract_val($3)
+        targ, x, y = $1.to_i, self.extract_val($2), self.extract_val($3)
         self.log "#{$2}, #{$3}, #{x}, #{y}"
         # $1 must be constant integer
-        @pc = $1.to_i $1 if x < y
+        @pc = targ if x < y
       elsif line =~ /int\s+([^\s]+)/i
         self.log "int #{$1}"
         svc = $1
@@ -188,7 +188,7 @@ class Simulator
           res = @cin.gets
           @reg[0] = res.strip.to_i
         elsif svc == "8"
-          ext_out.puts "pc = #{pc}"
+          ext_out.puts "pc = #{@pc}"
           8.times do |i|
             ext_out.puts "@reg[#{i}] = #{@reg[i]}"
           end
@@ -196,16 +196,29 @@ class Simulator
 
       elsif line =~ /hlt/i
         self.log "hlt"
+        @cout.puts "hlt"
         break
       else
         self.error "Line #{idx}: No such a operation; #{line}"
       end
-      loops += 1
 
+      loops += 1
       @pc += 1 if @pc == @pre_pc
     end
+  end
+
+  def main
+    while true
+      start = @cin.gets
+      self.run
+    end
+  end
+
+  def dump
+    puts "pc = #{@pc}"
+    puts @reg.join(',')
   end
 end
 
 s = Simulator.new(ARGV[0])
-s.run
+s.main
