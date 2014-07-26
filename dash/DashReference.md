@@ -14,11 +14,11 @@ main関数から始まる。
 グローバルには関数しか書けない。
 
 ### 四則演算
-+ - * /  
+\+ - * /  
 TODO MOD
 
 ### 比較
-== > >= 
+\== != \> >=   
 TODO (< <=)
 
 ### 論理演算
@@ -60,7 +60,21 @@ TODO (atom(x))
 
 -----
 
+## 演算子の優先順位
+* 上位
+* 単項演算子-
+* \* \/
+* \+ \-
+* > >=
+* == !=
+* &&
+* ||
+* =
+* 下位
+
+
 ## BNF
+```
 Code ::= <Function> *
 Function ::= Id '(' <VarList> ')' <CompoundStatement>
 VarList ::= <Var> (',' <Var>)*
@@ -83,5 +97,5 @@ PrimaryExpr ::= Id | Const | '(' Expression ')'
 Selection ::= 'if' '(' <Expression> ')' <Statement> ('else' <Statement>)?
 Iteration ::= 'while' '(' <Expression> ')' <Statement>
 Returning ::= 'return' ExpressionStatement
-
+```
 
