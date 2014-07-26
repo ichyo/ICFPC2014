@@ -1,25 +1,14 @@
 #include <bits/stdc++.h>
+#include "log.h"
+#include "reactive.h"
 #define REP(i,n) for(int i=0; i<(int)(n); ++i)
+#define debug(...)
 using namespace std;
-ofstream flog( "log.txt");
+string ghost_command;
 void sleep(int ms) {
     std::chrono::milliseconds dura( ms );
     std::this_thread::sleep_for( dura );
 }
-void logging(const char *level, const char *file, const int line, const char *format, ...)
-{
-    va_list argp;
-    char s[256];
-    string out;
-    sprintf(s, "%s%s(%d): ", level, file, line);
-    out += string(s);
-    va_start(argp, format);
-    vsprintf(s, format, argp);
-    out += string(s);
-    va_end(argp);
-    flog << out << endl;
-}
-#define debug(...) logging("[DEBUG]", __FILE__, __LINE__, __VA_ARGS__);
 
 int dx[4] = {0, 1, 0, -1};
 int dy[4] = {-1, 0, 1, 0};
@@ -79,47 +68,46 @@ public:
         }
     }
 
-    int width() const {
+    inline int width() const {
         return W;
     }
 
-    int height() const {
+    inline int height() const {
         return H;
     }
 
-    int get(int x, int y) const  {
+    inline int get(int x, int y) const  {
         return type[y][x];
     }
 
-    int get(pair<int, int> coord) const  {
+    inline int get(const pair<int, int>& coord) const  {
         return type[coord.second][coord.first];
     }
 
-    int count(BTYPE b) const {
+    inline int count(BTYPE b) const {
         return cnt[b];
     }
 
-    void action(int tick) {
+    inline void action(int tick) {
         // 移動と同時にフルーツは取れないらしい(参考 FAQ)ので1を足している(正しい?)
         if(tick == FIRST_FRUIT_AP + 1 || tick == SECOND_FRUIT_AP + 1) {
             set(fruit_coord, FRUIT);
-        }
-        if(tick == FIRST_FRUIT_DP || tick == SECOND_FRUIT_DP) {
+        }else if(tick == FIRST_FRUIT_DP || tick == SECOND_FRUIT_DP) {
             set(fruit_coord, EMPTY);
         }
     }
 
-    void set(int x, int y, BTYPE b) {
+    inline void set(int x, int y, BTYPE b) {
         cnt[ type[y][x] ]--;
         cnt[ b ] ++;
         type[y][x] = b;
     }
 
-    void set(pair<int, int> coord, BTYPE b) {
+    inline void set(const pair<int, int>& coord, BTYPE b) {
         set(coord.first, coord.second, b);
     }
 
-    bool valid(int x, int y) const {
+    inline bool valid(int x, int y) const {
         return 0 <= x && x < W && 0 <= y && y < H && type[y][x] != WALL;
     }
 
@@ -178,7 +166,7 @@ public:
         return rand() % 4;
     }
 
-    void move(const Field& field, int tick) {
+    bool move(const Field& field, int tick) {
         if(tick == next_tick) {
             int r = think();
             int nx = cx + dx[r];
@@ -199,23 +187,25 @@ public:
             }
 
             last_dir = r;
+            return true;
         }
+        return false;
     }
 
-    pair<int, int> coord() {
+    inline pair<int, int> coord() {
         return {cx, cy};
     }
 
-    bool is_fright() {
+    inline bool is_fright() {
         return fright_mode;
     }
 
-    void set_fright(int tick) {
+    inline void set_fright(int tick) {
         fright_mode = true;
         last_power_pill = tick;
     }
 
-    void action(int tick) {
+    inline void action(int tick) {
         if(tick == last_power_pill + FRIGHT_DURATION) {
             // fright モード 終わりの処理
             fright_mode = false;
@@ -223,19 +213,19 @@ public:
         }
     }
 
-    void eat() {
+    inline void eat() {
         eat_cnt ++;
     }
 
-    int eat_count() {
+    inline int eat_count() const {
         return eat_cnt;
     }
 
-    int lives() {
+    inline int lives() const {
         return life_cnt;
     }
 
-    void eaten() { 
+    inline void eaten() { 
         life_cnt--;
         cx = init_x;
         cy = init_y;
@@ -250,6 +240,7 @@ class Ghost{
     int next_tick;
     bool invisible_mode;
     int last_dir;
+    Reactive* R;
 public:
     Ghost():
         TICK_PER_MOVE{130, 132, 134, 136},
@@ -266,14 +257,42 @@ public:
         gid(id),
         next_tick(TICK_PER_MOVE[gid]),
         invisible_mode(false),
-        last_dir(DOWN)
-    {}
+        last_dir(DOWN),
+        R(new Reactive(ghost_command))
+    { }
 
-    int think() {
-        return rand() % 4;
+    void close() {
+        R->Write("game over");
     }
 
-    void move(const Field& field, int tick, bool is_fright) {
+    int think() {
+        int r = last_dir;
+        debug("ghost %d : think start", gid);
+
+        R->Write("start\n");
+
+        while(true) {
+            string s = R->Read();
+            debug("Reactive -> %s", s.c_str());
+            if(s.find("hlt") != string::npos) break;
+            stringstream ss(s);
+            vector<string> v;
+            while(ss >> s) v.push_back(s);
+            assert(v[0] == "int");
+            if(v[1] == "1") {
+                r = stoi(v[2]);
+            }
+        }
+
+        debug("ghost %d : think return %d", gid, r);
+        return r;
+    }
+
+    inline int get_id(){
+        return gid;
+    }
+
+    bool move(const Field& field, int tick, bool is_fright) {
         if(tick == next_tick) {
             int r = think();
 
@@ -298,7 +317,7 @@ public:
                 }
             }
 
-            for(r = 0; r < 4; r++) {
+            for(r = 0; r < 4; r++) if((r + 2) % 4 != last_dir) {
                 int nx = cx + dx[r];
                 int ny = cy + dy[r];
                 if(field.valid(nx, ny)) {
@@ -308,43 +327,61 @@ public:
                 }
             }
 
-after_move:
-            if(r >= 0 && r < 4) {
-                last_dir = r;
+            {
+                r = (last_dir + 2) % 4;
+                int nx = cx + dx[r];
+                int ny = cy + dy[r];
+                if(field.valid(nx, ny)) {
+                    cx = nx;
+                    cy = ny;
+                    goto after_move;
+                }
             }
+
+            assert(false);
+
+after_move:
+            assert(r >= 0 && r < 4);
+            last_dir = r;
             if(is_fright) {
                 next_tick += TICK_PER_MOVE_FRIGHT[gid];
             } else {
                 next_tick += TICK_PER_MOVE[gid];
             }
+            return true;
         }
+        return false;
     }
 
-    void action(int tick, bool is_fright) {
+    inline void action(int tick, bool is_fright) {
         if(invisible_mode && !is_fright) {
             invisible_mode = false;
         }
     }
 
-    pair<int, int> coord() const {
+    inline pair<int, int> coord() const {
         return {cx, cy};
     }
 
-    bool is_invisible() const {
+    inline bool is_invisible() const {
         return invisible_mode;
     }
 
-    void eat() {
+    inline void eat() {
         assert(!invisible_mode);
         cx = init_x;
         cy = init_y;
+
+        last_dir = DOWN; // right??
     }
 
-    void eaten() {
+    inline void eaten() {
         assert(!invisible_mode);
         invisible_mode = true;
         cx = init_x;
         cy = init_y;
+
+        last_dir = DOWN; // right??
     }
 };
 
@@ -367,7 +404,9 @@ class Game {
                 }
                 if(init[y][x] == '=') {
                     int id = ghosts.size();
+                    debug("ghost %d make start", id);
                     ghosts.push_back(Ghost(x, y, id));
+                    debug("ghost %d make end", id);
                 }
             }
         }
@@ -375,6 +414,11 @@ class Game {
     void lose(int tick) {
         cout << "you lose..." << endl;
         cout << "TICK: " << tick << endl;
+        cout << "SCORE: " << score << endl;
+    }
+    void timeover() {
+        cout << "time over..." << endl;
+        cout << "TICK: " << EOL << endl;
         cout << "SCORE: " << score << endl;
     }
 
@@ -398,7 +442,7 @@ class Game {
             }
         }
 
-        if(tick > 1) {
+        if(tick > 140) {
             for(int _ = 0; _ < field.height() + 3; _++) {
                 cout << "\33[2A" << endl; // カーソルを上に1行移動
             }
@@ -412,15 +456,21 @@ class Game {
         }
     }
 
+    void close() {
+        for(Ghost& g : ghosts) {
+            g.close();
+        }
+    }
+
     void run() {
         for(int tick = 1; tick <= EOL; tick++) {
-            // output
-            output(tick);
+            bool updated = false;
+            debug("start tick = %d", tick);
 
             // Step1. All Lambda-Man and ghost moves scheduled for this tick take place.
-            man.move(field, tick);
+            updated |= man.move(field, tick);
             for(Ghost& ghost : ghosts) {
-                ghost.move(field, tick, man.is_fright());
+                updated |= ghost.move(field, tick, man.is_fright());
             }
 
             // Step2. any actions (fright mode deactivating, fruit appearing/disappearing) take place.
@@ -435,6 +485,7 @@ class Game {
             if(field.get(man.coord()) == PILL) {
                 score += 10;
                 field.set(man.coord(), EMPTY);
+                debug("get pill : score %d", score);
             }
 
             // Step3-2. If Lambda-Man occupies a square with a power pill,
@@ -444,14 +495,15 @@ class Game {
                 score += 50;
                 field.set(man.coord(), EMPTY);
                 man.set_fright(tick);
+                debug("get power pill : score %d", score);
             }
 
             // Step3-3. If Lambda-Man occupies a square with a fruit,
             // the fruit is eaten by Lambda-Man, and removed from the game
             if(field.get(man.coord()) == FRUIT) {
                 score += 100; // TODO: ステージによって点数を変える
-                debug("score = %d", score);
                 field.set(man.coord(), EMPTY);
+                debug("get fruit : score %d", score);
             }
 
 
@@ -466,10 +518,11 @@ class Game {
                         ghost.eaten();
                         assert(man.eat_count() >= 1);
                         score += min(1600, 200 * man.eat_count());
-                        debug("turn = %d, score = %d", tick, score);
+                        debug("lambda eat ghost %d : score = %d", ghost.get_id(), score);
                     } else {
                     // lambda man are eaten
                         man.eaten();
+                        debug("ghost %d eat lambda", ghost.get_id());
                         for(Ghost& ghost_e : ghosts) {
                             ghost_e.eat();
                         }
@@ -479,35 +532,45 @@ class Game {
 
             // Step5. if all the ordinary pills (ie not power pills) have been eaten, then Lambda-Man wins and the game is over.
             if(field.count(PILL) == 0) {
+                debug("all pills have been eaten");
                 win(tick);
                 return ;
             }
 
             // Step6. if the number of Lambda-Man lives is 0, then Lambda-Man loses and the game is over
             if(man.lives() == 0) {
+                debug("lambda lost all lives");
                 lose(tick);
                 return ;
             }
 
-            // sleep(1);
+            if(updated) {
+                output(tick);
+            }
         }
+        timeover();
     }
 };
 
 int main(int argc, char* argv[]){
-    if(argc <= 1) {
-        cerr << "usage: " << argv[0] << " map_file" << endl;
+    if(argc <= 2) {
+        cerr << "usage: " << argv[0] << " map_file ghost_command" << endl;
         return 1;
     }
     ifstream ifs(argv[1]);
+    ghost_command = string(argv[2]);
+    debug("ghost_command = %s", ghost_command.c_str());
+
     vector<string> init;
     for(string s; getline(ifs, s);) {
         debug("%s", s.c_str());
         init.push_back(s);
     }
+
     debug("start game");
     Game game(init);
     game.run();
+    game.close();
     return 0;
 }
 

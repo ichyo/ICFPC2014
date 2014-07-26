@@ -161,44 +161,55 @@ class Simulator
         svc = $1
         if svc == "0"
           @cout.puts "int 0 #{@reg[0]}"
+          @cout.flush
         elsif svc == "1"
           @cout.puts "int 1"
+          @cout.flush
           res = @cin.gets # such like "20 30"
           @reg[0], @reg[1] = res.strip.split(" ").map {|o| o.to_i}
         elsif svc == "2"
           @cout.puts "int 2"
+          @cout.flush
           res = @cin.gets # such like "20 30"
           @reg[0], @reg[1] = res.strip.split(" ").map {|o| o.to_i}
         elsif svc == "3"
           @cout.puts "int 3"
+          @cout.flush
           res = @cin.gets # such like "4"
           @reg[0] = res.strip.to_i
         elsif svc == "4"
           @cout.puts "int 4 #{@reg[0]}"
+          @cout.flush
           res = @cin.gets
           @reg[0], @reg[1] = res.strip.split(" ").map {|o| o.to_i}
         elsif svc == "5"
           @cout.puts "int 5 #{@reg[0]}"
+          @cout.flush
           res = @cin.gets
           @reg[0], @reg[1] = res.strip.split(" ").map {|o| o.to_i}
         elsif svc == "6"
           @cout.puts "int 6 #{@reg[0]}"
+          @cout.flush
           res = @cin.gets
           @reg[0], @reg[1] = res.strip.split(" ").map {|o| o.to_i}
         elsif svc == "7"
           @cout.puts "int 7 #{@reg[0]} #{@reg[1]}"
+          @cout.flush
           res = @cin.gets
           @reg[0] = res.strip.to_i
         elsif svc == "8"
           ext_out.puts "pc = #{@pc}"
+          ext_out.flush
           8.times do |i|
             ext_out.puts "@reg[#{i}] = #{@reg[i]}"
+            ext_out.flush
           end
         end
 
       elsif line =~ /^hlt/i
         self.log "hlt"
         @cout.puts "hlt"
+        @cout.flush
         break
       else
         self.error "Line #{@pc}: No such a operation; #{line}"
@@ -216,6 +227,7 @@ class Simulator
   def main
     while true
       start = @cin.gets
+      break if start.strip == "game over"
       self.run
       self.dump
     end

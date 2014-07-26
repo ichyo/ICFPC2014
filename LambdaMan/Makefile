@@ -3,7 +3,7 @@ CFLAGS   = -Wall -Wextra -O2 -std=gnu++11
 LDFLAGS  =
 LIBS     =
 INCLUDE  = 
-TARGET   = simulator simulator_debug
+TARGET   = simulator
 OBJDIR   = ./obj
 ifeq "$(strip $(OBJDIR))" ""
   OBJDIR = .
