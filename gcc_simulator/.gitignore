@@ -1,4 +1,14 @@
+
 *.cmi
 *.cmo
 *.cmt
+*.cmx
+
+*.omc
+.omakedb
+.omakedb.lock
 a.out
+
+gcc
+gcc.o
+gcc.opt
