@@ -5,16 +5,25 @@
 プログラミング言語Dashの仕様
 
 -----
+## 例
+dash_sample.cを見よ
+
+-----
 ## 構文
 main関数から始まる。
 グローバルには関数しか書けない。
 
 ### 四則演算
-+ - * /
++ - * /  
+TODO MOD
+
 ### 比較
-== < > <= >=
+== > >= 
+TODO (< <=)
+
 ### 論理演算
-&& ||
+TODO (&& ||)
+
 ### 代入
 =
 ### 条件分岐
@@ -29,25 +38,25 @@ if (cond) {
 ### ループ
 ```
 while (cond) {
-    break;
 }
 ```
+TODO (break)
 
 ### 関数
 ```
-func(a, b, arr[8]) {
-    arr[0] = calc(a, c);
+func(a, b, c) {
+    a = calc(a, c);
 
     return (a, b);
 }
 ```
 
 ### リスト
-[a, b, [c, d]]  
-cons, car, cdr
+(1, (2, 3))
+car(x), cdr(y)
 
 ### プリミティブ
-atom(x)
+TODO (atom(x))
 
 -----
 
