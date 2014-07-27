@@ -1,0 +1,61 @@
+main(unvariable) {
+    return 0;
+}
+
+nth_elem(idx, list){
+    if(idx == 0) {
+        return car(list);
+    } else {
+        return nth_elem(idx - 1, cdr(list));
+    }
+}
+
+nth_elem2(idx1, idx2, list) {
+    return nth_elem(idx1, nth_elem(idx2, list));
+}
+
+init_list(n, init) {
+    if(n == 0) {
+        return 0;
+    } else {
+        return (init, init_list(n - 1, init));
+    }
+}
+
+set(idx, val, list){
+    if(idx == 0) {
+        return (val, cdr(list));
+    } else {
+        return (car(list), set(idx - 1, val, cdr(list)));
+    }
+}
+
+dfs(x, y, used, world){
+    if(x < 0) {
+        return 1000000000;
+    }
+    if(y < 0) {
+        return 1000000000;
+    }
+}
+
+get_cell(world, x, y) {
+    return nth_elem2(x, y, nth_elem(0, world));
+}
+
+get_status(world) {
+    return nth_elem(1, world);
+}
+
+get_lambda_loc(world){
+    return nth_elem(1, get_status(world))
+}
+
+next_seed(seed){
+    return seed * 214013 + 2531011;
+}
+
+random(seed){
+    return seed / 65536;
+}
+

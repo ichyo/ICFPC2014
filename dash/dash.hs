@@ -90,14 +90,14 @@ statement = do
 
 expressionStatement = do
 	try (do
-		whiteSpace
-		char ';'
-		return Empty)
+	whiteSpace
+	char ';'
+	return Empty)
 	<|> try (do
-		e <- expression
-		whiteSpace
-		char ';'
-		return e)
+	e <- expression
+	whiteSpace
+	char ';'
+	return e)
 
 
 expression :: Parser Dash
@@ -145,11 +145,11 @@ equality = do
 		y <- relation
 		return (\x -> Op op x y))
 	return $ foldl (\acc y -> y acc) x xs
+
 equalityOp = do
 	whiteSpace
 	(try (string "==")
 		<|> try (string "!="))
-
 
 relation = do
 	x <- add 
@@ -210,8 +210,8 @@ primaryExpr = do
 		whiteSpace
 		n <- natural
 		return (Int (fromIntegral n)))
-        <|> try (do -- cons cell
-		consCell)
+    <|> try (do -- cons cell
+        consCell)
 	<|> try (do -- car
 		whiteSpace
 		string "car"
