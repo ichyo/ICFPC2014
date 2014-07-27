@@ -115,8 +115,10 @@ let dump pc =
   List.iter (fun d -> printf "%s\n" (string_of_data d)) (of_list ctrl_stack)
 
 let rec step program pc =
-  dump pc;
   let line = program.(!pc) in
+  dump pc;
+  Printf.printf "line: \"%s\"\n" line;
+  ignore (read_line ());
   begin
     if string_match (ireg "ldc" 1) line 0
     then (
@@ -129,26 +131,26 @@ let rec step program pc =
          push (search !envf n i pc) data_stack;
          incr pc
     else if string_match (ireg "add" 0) line 0
-    then binop (fun x y -> x + y) pc
+    then binop (fun y x -> x + y) pc
     else if string_match (ireg "sub" 0) line 0
-    then binop (fun x y -> x - y) pc
+    then binop (fun y x -> x - y) pc
     else if string_match (ireg "mul" 0) line 0
-    then binop (fun x y -> x * y) pc
+    then binop (fun y x -> x * y) pc
     else if string_match (ireg "div" 0) line 0
-    then binop (fun x y -> x / y) pc
+    then binop (fun y x -> x / y) pc
     else if string_match (ireg "ceq" 0) line 0
-    then binop (fun x y -> if x == y then 1 else 0) pc
+    then binop (fun y x -> if x == y then 1 else 0) pc
     else if string_match (ireg "cgt" 0) line 0
-    then binop (fun x y -> if x > y then 1 else 0) pc
+    then binop (fun y x -> if x > y then 1 else 0) pc
     else if string_match (ireg "cgte" 0) line 0
-    then binop (fun x y -> if x >= y then 1 else 0) pc
+    then binop (fun y x -> if x >= y then 1 else 0) pc
     else if string_match (ireg "atom" 0) line 0
     then let x = pop data_stack in
          push (Int (match x with Int _ -> 1 | _ -> 0)) data_stack;
          incr pc
     else if string_match (ireg "cons" 0) line 0
-    then let x = pop data_stack and
-             y = pop data_stack in
+    then let y = pop data_stack and
+             x = pop data_stack in
          push (Cons (x, y)) data_stack;
          incr pc
     else if string_match (ireg "car" 0) line 0
@@ -194,7 +196,7 @@ let rec step program pc =
          | _ -> raise (Tag_mismatch !pc)
     else if string_match (ireg "rtn" 0) line 0
     then let x = pop ctrl_stack in
-         print_string ((string_of_data x) ^ "\n");
+         (* print_string ((string_of_data x) ^ "\n"); *)
          match x with
            Stop -> raise Machine_stop
          | Ret p -> let y = pop ctrl_stack in (
