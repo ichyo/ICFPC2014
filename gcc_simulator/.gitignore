@@ -3,12 +3,12 @@
 *.cmo
 *.cmt
 *.cmx
+*.o
 
 *.omc
 .omakedb
 .omakedb.lock
 a.out
 
-gcc
-gcc.o
+gcc.run
 gcc.opt
