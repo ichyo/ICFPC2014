@@ -242,9 +242,11 @@ primaryExpr = do
 	<|> try (do
 		whiteSpace
 		char '('
+		whiteSpace
 		e <- expression
 		whiteSpace
 		char ')'
+		whiteSpace
 		return e)
 	<|> try (do
 		whiteSpace
