@@ -276,7 +276,8 @@ let rec step program pc =
     else if string_match (ireg "st" 2) line 0
     then let n = int_of_string (matched_group 1 line) and
              i = int_of_string (matched_group 2 line) in
-         modify_var !envf n i pc
+         modify_var !envf n i pc;
+         incr pc
     (* else if string_match (ireg "dbug" 0) line 0 *)
     (* then *)
     (* else if string_match (ireg "brk" 0) line 0 *)
