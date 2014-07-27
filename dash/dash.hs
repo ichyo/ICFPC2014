@@ -21,7 +21,7 @@ braces = P.braces lexer
 natural = P.natural lexer
 identifier = P.identifier lexer
 reservedOp = P.reservedOp lexer
-whiteSpace = P.whiteSpace lexer    
+whiteSpace = P.whiteSpace lexer
 
 data Dash = Empty
   | Code [Dash]
@@ -49,7 +49,7 @@ code = do
 
 function :: Parser Dash
 function = do
-	name <- var 
+	name <- var
 	whiteSpace
 	char '('
 	v <- varlist
@@ -138,7 +138,7 @@ land = do
 	return $ foldl (\acc y -> y acc) x xs
 
 equality = do
-	x <- relation 
+	x <- relation
 	xs <- many (do
 		whiteSpace
 		op <- equalityOp
@@ -152,7 +152,7 @@ equalityOp = do
 		<|> try (string "!="))
 
 relation = do
-	x <- add 
+	x <- add
 	xs <- many (do
 		whiteSpace
 		op <- relationOp
@@ -167,7 +167,7 @@ relationOp = do
 		<|> try (string "<"))
 
 add = do
-	x <- mul 
+	x <- mul
 	xs <- many (do
 		whiteSpace
 		op <- (try (string "+") <|> (try (string "-")))
@@ -176,7 +176,7 @@ add = do
 	return $ foldl (\acc y -> y acc) x xs
 
 mul = do
-	x <- unary 
+	x <- unary
 	xs <- many (do
 		whiteSpace
 		op <- (try (string "*") <|> (try (string "/")))
@@ -230,6 +230,15 @@ primaryExpr = do
 		whiteSpace
 		char ')'
 		return (Uop "Cdr" e))
+  <|> try (do -- atom
+    whiteSpace
+    string "atom"
+    whiteSpace
+    char '('
+    e <- expression
+    whiteSpace
+    char ')'
+    return (Uop "Atom" e))
 	<|> try (do
 		whiteSpace
 		char '('
@@ -314,7 +323,7 @@ initialEnv = Env 0 [] []
 eval :: Dash -> Env -> ([String], Env)
 
 eval (Code []) env = ([], env)
-eval (Code ((Function (Var name) (VarList vl) stmt):xs)) env = 
+eval (Code ((Function (Var name) (VarList vl) stmt):xs)) env =
 	let env' = envAddFunc env (name, (line env))
 	    env1 = envSetVal env' (map (\(Var s) -> s) vl)
 	    (c2, env2) = eval stmt env1
@@ -328,19 +337,19 @@ eval (CompoundStatement (x:xs)) env =
 	    (c2, env2) = eval (CompoundStatement xs) env1
 	in (c1 ++ c2, env2)
 
-eval (Assign (Var a) e) env = 
+eval (Assign (Var a) e) env =
 	let (c1, env1) = eval e env
 	    z = "ST 0 " ++ show (getValPosition env1 a) ++
 		    "\t;; [Line " ++ show (line env1) ++ "]"
 	    env2 = envAddLine env1 1
 	in (c1 ++ [z], env2)
 
-eval (Op "," l r) env = 
+eval (Op "," l r) env =
 	let (c1, env1) = eval l env
 	    (c2, env2) = eval r env1
 	in (c1 ++ c2, env2)
 
-eval (Op op l r) env = 
+eval (Op op l r) env =
 	let (c1, env1) = eval l env
 	    (c2, env2) = eval r env1
 	    z = f op
@@ -365,6 +374,11 @@ eval (Uop "Cdr" e) env =
 	    z = ["CDR" ++ "\t;; [Line " ++ show (line env1) ++ "]"]
 	in (c1 ++ z, envAddLine env1 1)
 
+eval (Uop "Atom" e) env =
+  let (c1, env1) = eval e env
+      z = ["ATOM" ++ "\t;; [Line " ++ show (line env1) ++ "]"]
+  in (c1 ++ z, envAddLine env1 1)
+
 eval (Uop "-" e) env =
 	let (c1, env1) = eval e env
 	    z = ["LDC -1" ++ "\t;; [Line " ++ show (line env1) ++ "]",
@@ -382,14 +396,14 @@ eval (If cond t f) env =
 			 " " ++ show (line env3)]
 	in (c1 ++ z ++ c2 ++ z2 ++ c3, env3)
 
-eval (While cond stmt) env = 
+eval (While cond stmt) env =
 	let (c1, env1) = eval cond env
 	    (c2, env2) = eval stmt (envAddLine env1 1)
 	    env3 = envAddLine env2 2
 	    z = ["TSEL " ++ show (line env1 + 1) ++
 		     " " ++ show (line env2 + 2)]
 	    z2 = ["LDC 0",
-		  "TSEL " ++ show (line env) ++ " " ++ 
+		  "TSEL " ++ show (line env) ++ " " ++
 			show (line env)]
 	in (c1 ++ z ++ c2 ++ z2, env3)
 
@@ -405,7 +419,7 @@ eval (Int n) env =
 	in ([z], envAddLine env 1)
 
 eval (Var v) env =
-	if v `elem` (val env)  
+	if v `elem` (val env)
 	then let z = ["LD 0 " ++ show (getValPosition env v)]
 	     in (z, envAddLine env 1)
 	else let z = ["LDF " ++ "___" ++ v ++ "___"]
@@ -418,7 +432,7 @@ eval (FunCall (Var name) stlist) env =
 	in (c1 ++ [z] ++ [z2], envAddLine env1 2)
 	where countComma (Op "," l r) =
 		      1 + countComma l + countComma r
-	      countComma (Op _ l r) = 
+	      countComma (Op _ l r) =
 		      countComma l + countComma r
 	      countComma _ = 0
 
@@ -445,4 +459,3 @@ main = do
 	    f (Left b) = print b
 	--let f (Right b) = putStrLn (unlines .fst $ eval b initialEnv)
 	f $ parse code "Dash" str
-
