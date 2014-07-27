@@ -76,6 +76,7 @@ var = do
 compoundStatement = do
 	whiteSpace
 	char '{'
+	whiteSpace
 	stmt <- many statement
 	whiteSpace
 	char '}'
@@ -92,21 +93,27 @@ expressionStatement = do
 	try (do
 	whiteSpace
 	char ';'
+	whiteSpace
 	return Empty)
 	<|> try (do
+	whiteSpace
 	e <- expression
 	whiteSpace
 	char ';'
+	whiteSpace
 	return e)
 
 
 expression :: Parser Dash
 expression = do
 	try (do
+		whiteSpace
 		v <- var
 		whiteSpace
 		char '='
+		whiteSpace
 		x <- lor
+		whiteSpace
 		return $ Assign v x)
 	<|> try lor
 
@@ -115,7 +122,9 @@ expressionList = do
 	xs <- many (do
 		whiteSpace
 		char ','
+		whiteSpace
 		y <- expression
+		whiteSpace
 		return (\x -> Op "," x y))
 	return $ foldl (\acc y -> y acc) x xs
 
@@ -124,7 +133,9 @@ lor = do
 	xs <- many (do
 		whiteSpace
 		string "||"
+		whiteSpace
 		y <- land
+		whiteSpace
 		return (\x -> Op "||" x y))
 	return $ foldl (\acc y -> y acc) x xs
 
@@ -133,7 +144,9 @@ land = do
 	xs <- many (do
 		whiteSpace
 		string "&&"
+		whiteSpace
 		y <- equality
+		whiteSpace
 		return (\x -> Op "&&" x y))
 	return $ foldl (\acc y -> y acc) x xs
 
@@ -142,7 +155,9 @@ equality = do
 	xs <- many (do
 		whiteSpace
 		op <- equalityOp
+		whiteSpace
 		y <- relation
+		whiteSpace
 		return (\x -> Op op x y))
 	return $ foldl (\acc y -> y acc) x xs
 
@@ -156,7 +171,9 @@ relation = do
 	xs <- many (do
 		whiteSpace
 		op <- relationOp
+		whiteSpace
 		y <- add
+		whiteSpace
 		return (\x -> Op op x y))
 	return $ foldl (\acc y -> y acc) x xs
 relationOp = do
@@ -167,20 +184,28 @@ relationOp = do
 		<|> try (string "<"))
 
 add = do
+	whiteSpace
 	x <- mul
+	whiteSpace
 	xs <- many (do
 		whiteSpace
 		op <- (try (string "+") <|> (try (string "-")))
+		whiteSpace
 		y <- mul
+		whiteSpace
 		return (\x -> Op op x y))
 	return $ foldl (\acc y -> y acc) x xs
 
 mul = do
+	whiteSpace
 	x <- unary
+	whiteSpace
 	xs <- many (do
 		whiteSpace
 		op <- (try (string "*") <|> (try (string "/")))
+		whiteSpace
 		y <- unary
+		whiteSpace
 		return (\x -> Op op x y))
 	return $ foldl (\acc y -> y acc) x xs
 
@@ -197,7 +222,9 @@ unary = do
 	return $ foldr (\f acc -> f acc) y x
 
 postfixExpr = do
+	whiteSpace
 	x <- primaryExpr
+	whiteSpace
 	y <- many (do
 		whiteSpace
 		op <- (try (string "++"))
@@ -211,7 +238,10 @@ primaryExpr = do
 		n <- natural
 		return (Int (fromIntegral n)))
     <|> try (do -- cons cell
-        consCell)
+        whiteSpace
+        x <- consCell
+        return x
+        )
 	<|> try (do -- car
 		whiteSpace
 		string "car"
@@ -220,6 +250,7 @@ primaryExpr = do
 		e <- expression
 		whiteSpace
 		char ')'
+		whiteSpace
 		return (Uop "Car" e))
 	<|> try (do -- cdr
 		whiteSpace
@@ -238,6 +269,7 @@ primaryExpr = do
     e <- expression
     whiteSpace
     char ')'
+    whiteSpace
     return (Uop "Atom" e))
 	<|> try (do
 		whiteSpace
@@ -264,11 +296,15 @@ primaryExpr = do
 consCell = do
 	whiteSpace
 	char '('
+	whiteSpace
 	carVal <- expression
 	whiteSpace
 	char ','
+	whiteSpace
 	cdrVal <- expression
+	whiteSpace
 	char ')'
+	whiteSpace
 	return $ Cons carVal cdrVal
 
 selection = do
@@ -276,14 +312,18 @@ selection = do
 	string "if"
 	whiteSpace
 	char '('
+	whiteSpace
 	cond <- expression
 	whiteSpace
 	char ')'
+	whiteSpace
 	stmt <- statement
 	(try (do
 		whiteSpace
 		string "else"
+		whiteSpace
 		stmt2 <- statement
+		whiteSpace
 		return (If cond stmt stmt2))
 	 <|> (return (If cond stmt Empty)))
 
@@ -292,15 +332,18 @@ iteration = do
 	string "while"
 	whiteSpace
 	char '('
+	whiteSpace
 	cond <- expression
 	whiteSpace
 	char ')'
+	whiteSpace
 	stmt <- statement
 	return $ While cond stmt
 
 returning = do
 	whiteSpace
 	string "return"
+	whiteSpace
 	e <- expressionStatement
 	return $ Return e
 
