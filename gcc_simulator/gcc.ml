@@ -2,11 +2,6 @@
 open Str
 open Stack
 
-exception Tag_mismatch of int
-exception Control_mismatch of int
-exception Frame_mismatch of int
-exception Machine_stop
-
 type data =
     Int of int
   | Cons of data * data
@@ -20,6 +15,11 @@ and frame = {
   vars : data array;
   mutable dummy : bool;
 }
+
+exception Tag_mismatch of int
+exception Control_mismatch of int
+exception Frame_mismatch of int
+exception Machine_stop of data
 
 let rec pp_data ppf =
   let open Format in
@@ -116,9 +116,9 @@ let dump pc =
 
 let rec step program pc =
   let line = program.(!pc) in
-  dump pc;
-  Printf.printf "line: \"%s\"\n" line;
-  ignore (read_line ());
+  (* dump pc; *)
+  (* Printf.printf "line: \"%s\"\n" line; *)
+  (* ignore (read_line ()); *)
   begin
     if string_match (ireg "ldc" 1) line 0
     then (
@@ -198,7 +198,7 @@ let rec step program pc =
     then let x = pop ctrl_stack in
          (* print_string ((string_of_data x) ^ "\n"); *)
          match x with
-           Stop -> raise Machine_stop
+           Stop -> raise (Machine_stop (pop data_stack))
          | Ret p -> let y = pop ctrl_stack in (
                       match y with
                         Frame f -> envf := f;
@@ -236,7 +236,7 @@ let rec step program pc =
            )
          | _ -> raise (Tag_mismatch !pc)
     else if string_match (ireg "stop" 0) line 0
-    then raise Machine_stop
+    then raise (Machine_stop (pop data_stack))
     else if string_match (ireg "tsel" 2) line 0
     then let x = pop data_stack in
          match x with
@@ -295,11 +295,46 @@ let rec read_program fp arr =
   with End_of_file ->
     close_in fp; arr
 
+let next_int str idx =
+  if string_match (regexp "[0-9]+") str !idx
+  then
+    let ret = int_of_string (matched_string str) in
+    idx := match_end ();
+    ret
+  else
+    failwith ("program error: " ^ (string_of_int !idx))
+
+let decode str =
+  let idx = ref 0 in
+  let rec parse str idx =
+    if String.get str !idx = '('
+    then (
+      idx := !idx + 1;            (* skip ) *)
+      let car = parse str idx in
+      idx := !idx + 1;            (* skip comma *)
+      let cdr = parse str idx in
+      idx := !idx + 1;            (* skip ) *)
+      Cons (car, cdr)
+    )
+    else
+      let a = next_int str idx in Int a
+  in parse (global_replace (regexp "[^0-9(),]") "" str) idx
+
+let rec encode =
+  let open Printf in
+  function               (* toriaezu cons wo soreppoku dump *)
+    Int x -> sprintf "%d" x
+  | Cons (car, cdr) -> sprintf "(%s,%s)" (encode car) (encode cdr)
+  | _ -> failwith "encode: unexpected"
+
+let run program =
+  let pc = ref 0 in
+  try step program pc
+  with Machine_stop d -> print_string (encode d)
+
 let () =
   let program = read_program (open_in Sys.argv.(1)) (Array.make 0 "") in
   Array.iter (fun s -> Printf.printf "%s\n" s) program;
   push Stop ctrl_stack;
-  let pc = ref 0 in
-  try
-    step program pc
-  with Machine_stop -> print_string "stop\n"
+  push (decode (read_line ())) data_stack;
+  run program
