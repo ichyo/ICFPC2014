@@ -2,16 +2,24 @@ main(unvariable) {
     return 0;
 }
 
-nth_elem(idx, list){
+get(idx, list){
     if(idx == 0) {
         return car(list);
     } else {
-        return nth_elem(idx - 1, cdr(list));
+        return get(idx - 1, cdr(list));
     }
 }
 
-nth_elem2(idx1, idx2, list) {
-    return nth_elem(idx1, nth_elem(idx2, list));
+get2(x, y, list) {
+    return get(x, get(y, list));
+}
+
+length(list) {
+    if(atom(list)) {
+        return 0;
+    } else {
+        return 1 + length(cdr(list));
+    }
 }
 
 init_list(n, init) {
@@ -30,25 +38,66 @@ set(idx, val, list){
     }
 }
 
-dfs(x, y, used, world){
+set2(x, y, val, list) {
+    set(y, set(x, val, get(y, list)), list);
+}
+
+min(x, y) {
+    if(x < y) {
+        return x;
+    } else {
+        return y;
+    }
+}
+
+dfs(x, y, used, world, _res){
     if(x < 0) {
         return 1000000000;
     }
     if(y < 0) {
         return 1000000000;
     }
+    if(x >= get_width(world)) {
+        return 1000000000;
+    }
+    if(y >= get_width(world)) {
+        return 1000000000;
+    }
+    if(get2(x, y, used) == 1) {
+        return 1000000000;
+    }
+    if(get_cell(world, x, y) == 0) {
+        return 1000000000;
+    }
+    if(get_cell(world, x, y) == 3) {
+        return 0;
+    }
+    used = set2(x, y, 1, used);
+    _res =           dfs(x + 1, y + 0, used, world, 0) ;
+    _res = min(_res, dfs(x - 1, y + 0, used, world, 0));
+    _res = min(_res, dfs(x + 0, y - 1, used, world, 0));
+    _res = min(_res, dfs(x + 0, y + 1, used, world, 0));
+    return _res;
 }
 
 get_cell(world, x, y) {
-    return nth_elem2(x, y, nth_elem(0, world));
+    return get2(x, y, get(0, world));
 }
 
 get_status(world) {
-    return nth_elem(1, world);
+    return get(1, world);
 }
 
 get_lambda_loc(world){
-    return nth_elem(1, get_status(world))
+    return get(1, get_status(world))
+}
+
+get_width(world) {
+    return length(get(0, get(0, world)));
+}
+
+get_height(world) {
+    return length(get(0, world));
 }
 
 next_seed(seed){

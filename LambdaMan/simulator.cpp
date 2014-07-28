@@ -10,11 +10,12 @@ void sleep(int ms) {
     std::this_thread::sleep_for( dura );
 }
 
+
 int dx[4] = {0, 1, 0, -1};
 int dy[4] = {-1, 0, 1, 0};
 enum BTYPE{
-    EMPTY,
     WALL,
+    EMPTY,
     PILL,
     P_PILL,
     FRUIT,
@@ -111,7 +112,7 @@ public:
         return 0 <= x && x < W && 0 <= y && y < H && type[y][x] != WALL;
     }
 
-    vector<string> to_string() {
+    vector<string> to_string() const {
         vector<string> res;
         for(int y = 0; y < H; y++) {
             string row;
@@ -147,6 +148,7 @@ class AI{
     int eat_cnt;
     int life_cnt;
     int last_dir;
+    Reactive* R;
 public:
     AI() {}
     AI(int x, int y) :
@@ -159,16 +161,28 @@ public:
         fright_mode(false),
         eat_cnt(0),
         life_cnt(3),
-        last_dir(DOWN)
+        last_dir(DOWN),
+        R(new Reactive("./lambda_ai"))
     {}
 
-    int think() {
-        return rand() % 4;
+    int think(const Field& field) {
+        char str[256];
+        sprintf(str, "%d %d\n", cx, cy);
+        R->Write(str);
+        R->Write("0\n");
+        sprintf(str, "%d %d\n", field.height(), field.width());
+        R->Write(str);
+        vector<string> grid = field.to_string();
+        for(string s : grid) {
+            R->Write(s + "\n");
+        }
+        int t = stoi(R->Read());
+        return t;
     }
 
     bool move(const Field& field, int tick) {
         if(tick == next_tick) {
-            int r = think();
+            int r = think(field);
             int nx = cx + dx[r];
             int ny = cy + dy[r];
 
@@ -265,7 +279,7 @@ public:
         R->Write("game over");
     }
 
-    int think() {
+    int think(const Field& field, const vector<string>& response) {
         int r = last_dir;
         debug("ghost %d : think start", gid);
 
@@ -279,9 +293,32 @@ public:
             vector<string> v;
             while(ss >> s) v.push_back(s);
             assert(v[0] == "int");
-            if(v[1] == "1") {
+            if(v[1] == "0") {
                 r = stoi(v[2]);
+            } else if(v[1] == "1") {
+                R->Write(response[1] + "\n");
+            } else if(v[1] == "2") {
+                R->Write(response[2] + "\n");
+            } else if(v[1] == "3") {
+                R->Write(response[3] + "\n");
+            } else if(v[1] == "4") {
+                assert(false);
+            } else if(v[1] == "5") {
+                assert(false);
+            } else if(v[1] == "6") {
+                if(stoi(v[2]) == gid) { // 自分自身について
+                    R->Write(to_string(invisible_mode * 2) + " " + to_string(last_dir) + "\n"); // TODO: fright_mode に未対応
+                } else {
+                    assert(false);
+                }
+            } else if(v[1] == "7") {
+                R->Write(to_string(field.get(stoi(v[2]), stoi(v[3]))) + "\n");
+            } else if(v[1] == "8") {
+                assert(false);
+            } else {
+                assert(false);
             }
+
         }
 
         debug("ghost %d : think return %d", gid, r);
@@ -292,9 +329,9 @@ public:
         return gid;
     }
 
-    bool move(const Field& field, int tick, bool is_fright) {
+    bool move(const Field& field, int tick, bool is_fright, const vector<string>& response) {
         if(tick == next_tick) {
-            int r = think();
+            int r = think(field, response);
 
             if(last_dir == -1 || (last_dir + 2) % 4 != r) {
                 int nx = cx + dx[r];
@@ -470,7 +507,11 @@ class Game {
             // Step1. All Lambda-Man and ghost moves scheduled for this tick take place.
             updated |= man.move(field, tick);
             for(Ghost& ghost : ghosts) {
-                updated |= ghost.move(field, tick, man.is_fright());
+                vector<string> response(9);
+                response[1] = to_string(man.coord().first) + " " + to_string(man.coord().second);
+                response[2] = to_string(man.coord().first) + " " + to_string(man.coord().second); // I don't know
+                response[3] = to_string(ghost.get_id());
+                updated |= ghost.move(field, tick, man.is_fright(), response);
             }
 
             // Step2. any actions (fright mode deactivating, fruit appearing/disappearing) take place.
@@ -546,6 +587,7 @@ class Game {
 
             if(updated) {
                 output(tick);
+                sleep(10);
             }
         }
         timeover();

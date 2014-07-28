@@ -39,6 +39,7 @@ data Dash = Empty
   | FunCall Dash Dash
   | Cons Dash Dash
   | Debug Dash
+  | Break
   deriving Show
 
 code :: Parser Dash
@@ -85,10 +86,21 @@ compoundStatement = do
 
 statement = do
 	try compoundStatement
+    <|> try debug
 	<|> try selection
 	<|> try iteration
 	<|> try returning
 	<|> try expressionStatement
+
+debug = do
+    whiteSpace
+    string "DEBUG"
+    whiteSpace
+    char '('
+    e <- expression
+    whiteSpace
+    char ')'
+    return (Debug e)
 
 expressionStatement = do
 	try (do
@@ -281,15 +293,6 @@ primaryExpr = do
 		char ')'
 		whiteSpace
 		return e)
-    <|> try (do
-        whiteSpace
-        string "DEBUG"
-        whiteSpace
-        char '('
-        e <- expression
-        whiteSpace
-        char ')'
-        return (Debug e))
 	<|> try (do
 		whiteSpace
 		v <- var
