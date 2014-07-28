@@ -460,7 +460,7 @@ eval (Uop "-" e) env =
 eval (Debug e) env =
     let (c1, env1) = eval e env
         z = ["DBUG" ++ "\t;; [DEBUG " ++ show e ++ "]"]
-    in (c1 ++ z, envAddLine env1 2)
+    in (c1 ++ z, envAddLine env1 1)
 
 eval Break env = 
     let z = ["BRK" ++ "\t;; [Line " ++ show (line env) ++ "]"]
