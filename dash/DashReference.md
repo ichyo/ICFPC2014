@@ -59,7 +59,8 @@ car(x), cdr(y)
 TODO (atom(x))
 
 ### その他
-DEBUG(Expression); 
+debug(Expression); 
+break();
 
 -----
 

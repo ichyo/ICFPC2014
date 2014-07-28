@@ -93,14 +93,28 @@ statement = do
 	<|> try expressionStatement
 
 debug = do
+    try (do
     whiteSpace
-    string "DEBUG"
+    string "debug"
     whiteSpace
     char '('
     e <- expression
     whiteSpace
     char ')'
-    return (Debug e)
+    whiteSpace
+    char ';'
+    return (Debug e))
+    <|> try (do
+    whiteSpace
+    string "break"
+    whiteSpace
+    char '('
+    whiteSpace
+    char ')'
+    whiteSpace
+    char ';'
+    return (Break))
+
 
 expressionStatement = do
 	try (do
@@ -448,6 +462,10 @@ eval (Debug e) env =
         z = ["DBUG" ++ "\t;; [DEBUG " ++ show e ++ "]"]
     in (c1 ++ z, envAddLine env1 2)
 
+eval Break env = 
+    let z = ["BRK" ++ "\t;; [Line " ++ show (line env) ++ "]"]
+    in (z, envAddLine env 1)
+
 eval (If cond t f) env =
 	let (c1, env1) = eval cond env
 	    (c2, env2) = eval t (envAddLine env1 1)
@@ -464,10 +482,10 @@ eval (While cond stmt) env =
 	    (c2, env2) = eval stmt (envAddLine env1 1)
 	    env3 = envAddLine env2 2
 	    z = ["TSEL " ++ show (line env1 + 1) ++
-		     " " ++ show (line env2 + 2)]
+		     " " ++ show (line env2 + 2) ++ ";; While (" ++ show cond ++ ") begin"]
 	    z2 = ["LDC 0",
 		  "TSEL " ++ show (line env) ++ " " ++
-			show (line env)]
+			show (line env) ++ ";; While (" ++ show cond ++ ") end"]
 	in (c1 ++ z ++ c2 ++ z2, env3)
 
 eval (Return s) env =
@@ -491,7 +509,7 @@ eval (Var v) env =
 eval (FunCall (Var name) stlist) env =
 	let (c1, env1) = eval stlist env
 	    z = "LDF " ++ "___" ++ name ++ "___"
-	    z2 = "AP " ++ show (countComma stlist + 1)
+	    z2 = "AP " ++ show (countComma stlist + 1) ++ ";; [FunCall " ++ name ++ "]"
 	in (c1 ++ [z] ++ [z2], envAddLine env1 2)
 	where countComma (Op "," l r) =
 		      1 + countComma l + countComma r
