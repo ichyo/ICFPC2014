@@ -58,6 +58,9 @@ car(x), cdr(y)
 ### プリミティブ
 TODO (atom(x))
 
+### その他
+DEBUG(Expression); 
+
 -----
 
 ## 演算子の優先順位

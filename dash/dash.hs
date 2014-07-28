@@ -38,6 +38,7 @@ data Dash = Empty
   | Int Int
   | FunCall Dash Dash
   | Cons Dash Dash
+  | Debug Dash
   deriving Show
 
 code :: Parser Dash
@@ -280,6 +281,15 @@ primaryExpr = do
 		char ')'
 		whiteSpace
 		return e)
+    <|> try (do
+        whiteSpace
+        string "DEBUG"
+        whiteSpace
+        char '('
+        e <- expression
+        whiteSpace
+        char ')'
+        return (Debug e))
 	<|> try (do
 		whiteSpace
 		v <- var
@@ -430,6 +440,11 @@ eval (Uop "-" e) env =
 		 "MUL"]
 	in (c1 ++ z, envAddLine env1 2)
 
+eval (Debug e) env =
+    let (c1, env1) = eval e env
+        z = ["DBUG" ++ "\t;; [DEBUG " ++ show e ++ "]"]
+    in (c1 ++ z, envAddLine env1 2)
+
 eval (If cond t f) env =
 	let (c1, env1) = eval cond env
 	    (c2, env2) = eval t (envAddLine env1 1)
@@ -480,6 +495,7 @@ eval (FunCall (Var name) stlist) env =
 	      countComma (Op _ l r) =
 		      countComma l + countComma r
 	      countComma _ = 0
+
 
 eval (Cons carE cdrE) env =
 	let (c1, env1) = eval carE env
